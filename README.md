@@ -1,66 +1,50 @@
-## Foundry
+## Defi Stablecoin
 
-**Foundry is a blazing fast, portable and modular toolkit for Ethereum application development written in Rust.**
+Developed a smart contract to implement a stable coin with the following characteristics:
+- Anchored to USD.
+- Algorithmic.
+- Collaborateral: wETH and wBTC.
 
-Foundry consists of:
-
--   **Forge**: Ethereum testing framework (like Truffle, Hardhat and DappTools).
--   **Cast**: Swiss army knife for interacting with EVM smart contracts, sending transactions and getting chain data.
--   **Anvil**: Local Ethereum node, akin to Ganache, Hardhat Network.
--   **Chisel**: Fast, utilitarian, and verbose solidity REPL.
-
-## Documentation
-
-https://book.getfoundry.sh/
+This is a practice project where I explore and experiment with various Solidity concepts learned in [Updraft Cyfrin](https://updraft.cyfrin.io/courses).
 
 ## Usage
 
-### Build
+### Install
 
 ```shell
-$ forge build
+$ make install
 ```
 
 ### Test
 
 ```shell
-$ forge test
-```
-
-### Format
-
-```shell
-$ forge fmt
-```
-
-### Gas Snapshots
-
-```shell
-$ forge snapshot
-```
-
-### Anvil
-
-```shell
-$ anvil
+$ make test
 ```
 
 ### Deploy
 
 ```shell
-$ forge script script/Counter.s.sol:CounterScript --rpc-url <your_rpc_url> --private-key <your_private_key>
+$ make deploy-anvil
 ```
 
-### Cast
-
 ```shell
-$ cast <subcommand>
+$ make deploy-sepolia
 ```
 
-### Help
+### Fund metamask or others
 
 ```shell
-$ forge --help
-$ anvil --help
-$ cast --help
+$ make fund-account
+```
+
+### Interactions
+
+Mint:
+```shell
+$ make mint-nft CHARACTER_INDEX=0
+```
+
+Attack:
+```shell
+$ make attack TOKEN_ID=0
 ```
