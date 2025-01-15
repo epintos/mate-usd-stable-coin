@@ -6,7 +6,7 @@ import {ERC20Burnable, ERC20} from "@openzeppelin/contracts/token/ERC20/extensio
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
- * @title MateStableCoin
+ * @title MATEStableCoin
  * @author Esteban Pintos
  * Collateral: Exogenous (wETH & wBTC)
  * Minting: Algorithmic
@@ -15,31 +15,31 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
  * This is the contract meant to be governted by MSCEngine. This contract is just the ERC20 implementation of our
  * stablecoin system.
  */
-contract MateStableCoin is ERC20Burnable, Ownable {
-    error MateStableCoin__MustBeMoreThanZero();
-    error MateStableCoin__BurnAmountExceedsBalance();
-    error MateStableCoin__NotZeroAddress();
+contract MATEStableCoin is ERC20Burnable, Ownable {
+    error MATEStableCoin__MustBeMoreThanZero();
+    error MATEStableCoin__BurnAmountExceedsBalance();
+    error MATEStableCoin__NotZeroAddress();
 
-    constructor() ERC20("MateStableCoin", "MATE") Ownable(msg.sender) {}
+    constructor() ERC20("MATEStableCoin", "MATE") Ownable(msg.sender) {}
 
     function burn(uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(msg.sender);
         if (_amount <= 0) {
-            revert MateStableCoin__MustBeMoreThanZero();
+            revert MATEStableCoin__MustBeMoreThanZero();
         }
 
         if (balance < _amount) {
-            revert MateStableCoin__BurnAmountExceedsBalance();
+            revert MATEStableCoin__BurnAmountExceedsBalance();
         }
         super.burn(_amount);
     }
 
     function mint(address _to, uint256 _amount) external onlyOwner returns (bool) {
         if (_to == address(0)) {
-            revert MateStableCoin__NotZeroAddress();
+            revert MATEStableCoin__NotZeroAddress();
         }
         if (_amount <= 0) {
-            revert MateStableCoin__MustBeMoreThanZero();
+            revert MATEStableCoin__MustBeMoreThanZero();
         }
         _mint(_to, _amount);
         return true;
