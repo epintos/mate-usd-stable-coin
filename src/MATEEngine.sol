@@ -2,7 +2,7 @@
 
 pragma solidity ^0.8.28;
 
-import {MateStableCoin} from "./MateStableCoin.sol";
+import {MATEStableCoin} from "./MATEStableCoin.sol";
 import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
@@ -65,7 +65,7 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
     mapping(address user => uint256 amountMATEMinted) private s_MATEMinted;
     address[] private s_collateralTokens;
 
-    MateStableCoin private immutable i_MATE;
+    MATEStableCoin private immutable i_MATE;
 
     // EVENTS
     event CollateralDeposited(
@@ -100,7 +100,7 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
             s_collateralTokens.push(tokenAddresses[i]);
         }
 
-        i_MATE = MateStableCoin(MATEAddress);
+        i_MATE = MATEStableCoin(MATEAddress);
     }
 
     // EXTERNAL FUNCTIONS
