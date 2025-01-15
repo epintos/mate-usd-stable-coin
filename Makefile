@@ -6,6 +6,8 @@ build :; forge build
 
 test :; forge test
 
+test-fork-sepolia :; @forge test --fork-url $(SEPOLIA_RPC_URL)
+
 install :
 	forge install cyfrin/foundry-devops@0.2.2 --no-commit && \
 	forge install foundry-rs/forge-std@v1.9.5 --no-commit && \
@@ -13,10 +15,10 @@ install :
 	forge install smartcontractkit/chainlink-brownie-contracts@1.3.0 --no-commit
 
 deploy-sepolia :
-	@forge script script/X.s.sol:X --rpc-url $(SEPOLIA_RPC_URL) --account $(SEPOLIA_ACCOUNT) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv
+	@forge script script/DeployMATE.s.sol:DeployMATE --rpc-url $(SEPOLIA_RPC_URL) --account $(SEPOLIA_ACCOUNT) --broadcast --verify --etherscan-api-key $(ETHERSCAN_API_KEY) -vvvv
 
 deploy-anvil :
-	@forge script script/X.s.sol:X --rpc-url $(RPC_URL) --account $(ANVIL_ACCOUNT) --broadcast -vvvv
+	@forge script script/DeployMATE.s.sol:DeployMATE --rpc-url $(RPC_URL) --account $(ANVIL_ACCOUNT) --broadcast -vvvv
 
 fund-account :
 	cast send $(SEPOLIA_ACCOUNT_ADDRESS) --value 0.01ether --rpc-url $(RPC_URL) --account $(ANVIL_ACCOUNT)

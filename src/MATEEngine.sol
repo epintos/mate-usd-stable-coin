@@ -55,7 +55,7 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
 
     // STATE VARIABLES
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
-    uint256 private constant PRECISION = 1e8;
+    uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // 200% overcollateralized
     uint256 private constant LIQUIDATION_PRECISION = 100;
     uint256 private constant MIN_HEALTH_FACTOR = 1;
@@ -202,7 +202,7 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
         (, int256 price,,,) = priceFeed.latestRoundData();
         // If 1 ETH = $1000 => CL will return 1000 * 1e8
         // Amount is in Wei (1e18), so we to multiple price (in 1e8) by 1e10 to match the precision (1e18)
-        // Then we divide by 1e8 to return a number with smaller precision
+        // Then we divide by 1e18 since they result would be 1e36 => 1e18
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 }
