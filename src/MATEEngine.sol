@@ -44,7 +44,7 @@ import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interf
  * as de depositing and withdrawing collateral.
  * @notice This contract is very lossely based on the MakerDAO DSS (DAI) system.
  */
-contract MATEEngine is IMATEEngine, ReentrancyGuard {
+contract MATEEngine is ReentrancyGuard {
     /// ERRORS ///
     error MATEEngine__NeedsMoreThanZero();
     error MATEEngine__TokenAddressesAndPriceFeedAdddressesMustBeSameLength();
@@ -69,6 +69,9 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
 
     /// EVENTS ///
     event CollateralDeposited(
+        address indexed user, address indexed tokenCollateralAddress, uint256 indexed amountCollateral
+    );
+    event CollateralRedeemed(
         address indexed user, address indexed tokenCollateralAddress, uint256 indexed amountCollateral
     );
 
@@ -108,7 +111,7 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
     // EXTERNAL FUNCTIONS
 
     /**
-     * @notice Deposits collateral and mints MATE tokens in one transaction
+     * Deposits collateral and mints MATE tokens in one transaction
      * @param tokenCollateralAddress The address of the token to be deposited as collateral
      * @param amountCollateral The amount of the token to be deposited as collateral
      * @param amountMATEToMint The amount of MATE tokens to mint
@@ -122,15 +125,55 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
         mintMATE(amountMATEToMint);
     }
 
-    function redeemCollaborateralForMATE() external {}
-
-    function redeemCollateral() external {}
-
-    function burnMATE() external {}
+    /**
+     * Burns MATE and redeems underlying collateral in one transaction
+     * @param tokenCollateralAddress The address of the token to be redeemed as collateral
+     * @param amountCollateral The amount of the token to be redeemed as collateral
+     * @param amountMATEToBurn The amount of MATE tokens to burn
+     * @dev redeemCollateral already checks health factor
+     */
+    function redeemCollaborateralForMATE(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        uint256 amountMATEToBurn
+    ) external {
+        burnMATE(amountMATEToBurn);
+        redeemCollateral(tokenCollateralAddress, amountCollateral);
+    }
 
     function liquidate() external {}
 
     // PUBLIC FUNCTIONS
+
+    function redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral)
+        public
+        moreThanZero(amountCollateral)
+        nonReentrant
+    {
+        s_collateralDeposited[msg.sender][tokenCollateralAddress] -= amountCollateral;
+        emit CollateralRedeemed(msg.sender, tokenCollateralAddress, amountCollateral);
+
+        bool success = IERC20(tokenCollateralAddress).transfer(msg.sender, amountCollateral);
+        if (!success) {
+            revert MATEEngine__TranferFailed();
+        }
+
+        // It is more gas efficient to do this after the transfer
+        _revertIfHealthFactorIsBroken(msg.sender);
+    }
+
+    function burnMATE(uint256 amount) public moreThanZero(amount) {
+        s_MATEMinted[msg.sender] -= amount;
+        bool success = i_MATE.transferFrom(msg.sender, address(this), amount);
+        if (!success) {
+            revert MATEEngine__TranferFailed();
+        }
+
+        i_MATE.burn(amount);
+
+        // This might not be needed
+        _revertIfHealthFactorIsBroken(msg.sender);
+    }
 
     /**
      * @notice follows CEI pattern
