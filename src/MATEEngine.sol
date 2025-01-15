@@ -7,23 +7,23 @@ import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 
-interface IMATEEngine {
-    function depositCollateralAndMintMATE() external;
+// interface IMATEEngine {
+//     function depositCollateralAndMintMATE(address, uint256, uint256) external;
 
-    function depositCollaborateral(address, uint256) external;
+//     function depositCollaborateral(address, uint256) external;
 
-    function redeemCollaborateralForMATE() external;
+//     function redeemCollaborateralForMATE() external;
 
-    function redeemCollateral() external;
+//     function redeemCollateral() external;
 
-    function mintMATE(uint256) external;
+//     function mintMATE(uint256) external;
 
-    function burnMATE() external;
+//     function burnMATE() external;
 
-    function liquidate() external;
+//     function liquidate() external;
 
-    function getHealthFactor() external view;
-}
+//     function getHealthFactor() external view;
+// }
 
 /**
  * @title MATEEngine
@@ -45,7 +45,7 @@ interface IMATEEngine {
  * @notice This contract is very lossely based on the MakerDAO DSS (DAI) system.
  */
 contract MATEEngine is IMATEEngine, ReentrancyGuard {
-    // ERRORS
+    /// ERRORS ///
     error MATEEngine__NeedsMoreThanZero();
     error MATEEngine__TokenAddressesAndPriceFeedAdddressesMustBeSameLength();
     error MATEEngine__NotAllowedToken();
@@ -53,7 +53,7 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
     error MATEEngine__BreaksHealthFactor(uint256 healthFactor);
     error MATEEngine__MintFailed();
 
-    // STATE VARIABLES
+    /// STATE VARIABLES ///
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
     uint256 private constant PRECISION = 1e18;
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // 200% overcollateralized
@@ -67,12 +67,12 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
 
     MATEStableCoin private immutable i_MATE;
 
-    // EVENTS
+    /// EVENTS ///
     event CollateralDeposited(
         address indexed user, address indexed tokenCollateralAddress, uint256 indexed amountCollateral
     );
 
-    // MODIFIERS
+    /// MODIFIERS ///
     modifier moreThanZero(uint256 amount) {
         if (amount <= 0) {
             revert MATEEngine__NeedsMoreThanZero();
@@ -87,7 +87,9 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
         _;
     }
 
-    // FUNCTIONS
+    /// FUNCTIONS ///
+
+    // CONSTRUCTOR
     constructor(address[] memory tokenAddresses, address[] memory priceFeedAddresses, address MATEAddress) {
         // USD Price Feeds
         if (tokenAddresses.length != priceFeedAddresses.length) {
@@ -104,7 +106,31 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
     }
 
     // EXTERNAL FUNCTIONS
-    function depositCollateralAndMintMATE() external {}
+
+    /**
+     * @notice Deposits collateral and mints MATE tokens in one transaction
+     * @param tokenCollateralAddress The address of the token to be deposited as collateral
+     * @param amountCollateral The amount of the token to be deposited as collateral
+     * @param amountMATEToMint The amount of MATE tokens to mint
+     */
+    function depositCollateralAndMintMATE(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        uint256 amountMATEToMint
+    ) external {
+        depositCollaborateral(tokenCollateralAddress, amountCollateral);
+        mintMATE(amountMATEToMint);
+    }
+
+    function redeemCollaborateralForMATE() external {}
+
+    function redeemCollateral() external {}
+
+    function burnMATE() external {}
+
+    function liquidate() external {}
+
+    // PUBLIC FUNCTIONS
 
     /**
      * @notice follows CEI pattern
@@ -112,7 +138,7 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
      * @param amountCollateral The amount of the token to be deposited as collateral
      */
     function depositCollaborateral(address tokenCollateralAddress, uint256 amountCollateral)
-        external
+        public
         moreThanZero(amountCollateral)
         isAllowedToken(tokenCollateralAddress)
         nonReentrant
@@ -125,16 +151,12 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
         }
     }
 
-    function redeemCollaborateralForMATE() external {}
-
-    function redeemCollateral() external {}
-
     /**
      * @notice follows CEI pattern
      * @param amountMATEToMint The amount of MATE to mint
      * @notice they must have more collateral value than the mininum threshold
      */
-    function mintMATE(uint256 amountMATEToMint) external moreThanZero(amountMATEToMint) nonReentrant {
+    function mintMATE(uint256 amountMATEToMint) public moreThanZero(amountMATEToMint) nonReentrant {
         s_MATEMinted[msg.sender] += amountMATEToMint;
         _revertIfHealthFactorIsBroken(msg.sender);
         bool minted = i_MATE.mint(msg.sender, amountMATEToMint);
@@ -143,13 +165,7 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
         }
     }
 
-    function burnMATE() external {}
-
-    function liquidate() external {}
-
-    function getHealthFactor() external view {}
-
-    // PRIVATE & INTERNAL FUNCTIONS
+    // PRIVATE & INTERNAL VIEW FUNCTIONS
     function _getAccountInformation(address user)
         private
         view
@@ -205,4 +221,6 @@ contract MATEEngine is IMATEEngine, ReentrancyGuard {
         // Then we divide by 1e18 since they result would be 1e36 => 1e18
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
+
+    function getHealthFactor() external view {}
 }
