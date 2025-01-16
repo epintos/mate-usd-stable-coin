@@ -47,7 +47,7 @@ contract MATEEngineTest is Test {
         // ERC20Mock(wETH).approve(address(mateEngine), AMOUNT_COLLATERAL);
 
         vm.expectRevert(MATEEngine.MATEEngine__NeedsMoreThanZero.selector);
-        mateEngine.depositCollaborateral(wETH, 0);
+        mateEngine.depositCollateral(wETH, 0);
         vm.stopPrank();
     }
 }
