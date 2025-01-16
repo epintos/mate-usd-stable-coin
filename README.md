@@ -1,11 +1,13 @@
-## Defi Stablecoin
+## MATE 🧉 Stablecoin 💵
+
+<img src="./mate-stable-coin-img.png" alt="MATE Stablecoin" width="200"/>
 
 Developed a smart contract to implement a stable coin with the following characteristics:
-- Anchored to USD.
+- Anchored to USD 💵 (and not Argentine peso 🧉)
 - Algorithmic.
-- Collaborateral: wETH and wBTC.
+- Collateral: wETH and wBTC.
 
-This is a practice project where I explore and experiment with various Solidity concepts learned in [Updraft Cyfrin](https://updraft.cyfrin.io/courses).
+This practice project allows me to explore and experiment with various Solidity concepts learned through [Updraft Cyfrin](https://updraft.cyfrin.io/courses).
 
 ## Usage
 
