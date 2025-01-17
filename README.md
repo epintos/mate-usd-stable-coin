@@ -40,13 +40,3 @@ $ make fund-account
 ```
 
 ### Interactions
-
-Mint:
-```shell
-$ make mint-nft CHARACTER_INDEX=0
-```
-
-Attack:
-```shell
-$ make attack TOKEN_ID=0
-```
