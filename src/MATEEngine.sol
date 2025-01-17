@@ -43,7 +43,7 @@ contract MATEEngine is ReentrancyGuard {
     uint256 private constant LIQUIDATION_THRESHOLD = 50; // 200% overcollateralized
     uint256 private constant LIQUIDATION_PRECISION = 100;
     uint256 private constant MIN_HEALTH_FACTOR = 1e18;
-    uint256 private constant LIQUIDATOR_BONUS = 10; // 10% bonus for liquidators
+    uint256 private constant LIQUIDATION_BONUS = 10; // 10% bonus for liquidators
 
     mapping(address token => address priceFeed) private s_priceFeeds;
     mapping(address user => mapping(address token => uint256 amount)) private s_collateralDeposited;
@@ -102,7 +102,7 @@ contract MATEEngine is ReentrancyGuard {
      * Deposits collateral and mints MATE tokens in one transaction
      * @param tokenCollateralAddress The address of the token to be deposited as collateral
      * @param amountCollateral The amount of the token to be deposited as collateral
-     * @param amountMATEToMint The amount of MATE tokens to mint
+     * @param amountMATEToMint The amount of MATE tokens to mint (precision 1e18)
      */
     function depositCollateralAndMintMATE(
         address tokenCollateralAddress,
@@ -130,14 +130,16 @@ contract MATEEngine is ReentrancyGuard {
     /**
      * @param collateral The ERC20 collateral address to liquidate from the user
      * @param user The user who has broken the health factor. Their _healthFactor should be below MIN_HEALTH_FACTOR
-     * @param mateDebtToCover The amount of MATE you want to burn to improve the user's health factor. In Wei
-     * @notice You can partially liqquidate a user.
+     * @param mateDebtToCover The amount of MATE you want to burn to improve the user's health factor (precision 1e18)
+     * @notice You can partially liquidate a user.
      * @notice You will get a liquidation bonus for taking the user's funds.
      * @notice This function working assumes the protocol will be roughly 200% overcollateralized in order for
      * this to work.
      * @notice A known bug would be if the protocol were 100% or less collateralized, then we wouldn't
      * be able to incentive the liquidators.For example, if the price of the collateral plummeted before
      * anyone could be liquidated.
+     * @notice This function only reduces the user debt and keeps the MATE in the MATEStableCoin balance. The liquidator
+     * MATE gets burned instead.
      */
     function liquidate(address collateral, address user, uint256 mateDebtToCover)
         external
@@ -157,7 +159,7 @@ contract MATEEngine is ReentrancyGuard {
         uint256 tokenAmountFromDebtCovered = getTokenAmountFromUSD(collateral, mateDebtToCover);
 
         // 0.005 ETH * 1e18 * 0.1 = 5e14 = 0.0005ETH
-        uint256 bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATOR_BONUS) / LIQUIDATION_PRECISION;
+        uint256 bonusCollateral = (tokenAmountFromDebtCovered * LIQUIDATION_BONUS) / LIQUIDATION_PRECISION;
 
         // The would get 0.005 + 0.0005 = 0.0055 ETH
         uint256 totalCollateralToRedeem = tokenAmountFromDebtCovered + bonusCollateral;
@@ -188,9 +190,6 @@ contract MATEEngine is ReentrancyGuard {
 
     function burnMATE(uint256 amount) public moreThanZero(amount) {
         _burnMATE(amount, msg.sender, msg.sender);
-
-        // This might not be needed
-        _revertIfHealthFactorIsBroken(msg.sender);
     }
 
     /**
@@ -214,7 +213,7 @@ contract MATEEngine is ReentrancyGuard {
 
     /**
      * @notice follows CEI pattern
-     * @param amountMATEToMint The amount of MATE to mint
+     * @param amountMATEToMint The amount of MATE to mint (precision 1e18)
      * @notice they must have more collateral value than the mininum threshold
      */
     function mintMATE(uint256 amountMATEToMint) public moreThanZero(amountMATEToMint) nonReentrant {
@@ -230,7 +229,7 @@ contract MATEEngine is ReentrancyGuard {
 
     /**
      *
-     * @dev Low-lelver internval function. Do not call unless the function calling it is checking for
+     * @dev Low-level internal function. Do not call unless the function calling it is checking for
      * health factors being broken.
      */
     function _burnMATE(uint256 amount, address onBehalfOf, address mateFrom) private {
@@ -239,7 +238,7 @@ contract MATEEngine is ReentrancyGuard {
         if (!success) {
             revert MATEEngine__TranferFailed();
         }
-
+        //  liquidators MATE gets burned. The user still has the MATE, but has less MATE (debt) in this contract
         i_MATE.burn(amount);
     }
 
@@ -261,7 +260,7 @@ contract MATEEngine is ReentrancyGuard {
         returns (uint256 totalMATEMinted, uint256 collateralValueInUSD)
     {
         totalMATEMinted = s_MATEMinted[user];
-        collateralValueInUSD = getAccountCollateralValue(user);
+        collateralValueInUSD = getAccountCollateralValueInUSD(user);
     }
 
     /**
@@ -273,15 +272,7 @@ contract MATEEngine is ReentrancyGuard {
      */
     function _healthFactor(address user) private view returns (uint256) {
         (uint256 totalMATEMinted, uint256 collateralValueInUSD) = _getAccountInformation(user);
-        uint256 collateralAdjustedForThreshold = (collateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
-
-        // Examples:
-        // $100e18 ETH collateral and $75 MATE minted
-        // 100e18 * 50 / 100 = (50e18 * 1e18) / 75 = 66.66 < 1e18? - so it can be liquidated
-
-        // $100 ETH collateral and $50 MATE minted
-        // 100 * 50 / 100 = (50 * 100) / 50 = 100 < 100? - so it cannot be liquidated
-        return (collateralAdjustedForThreshold * PRECISION) / totalMATEMinted;
+        return _calculateHealthFactor(totalMATEMinted, collateralValueInUSD);
     }
 
     function _revertIfHealthFactorIsBroken(address user) private view {
@@ -291,10 +282,29 @@ contract MATEEngine is ReentrancyGuard {
         }
     }
 
+    function _calculateHealthFactor(uint256 totalMATEMinted, uint256 collateralValueInUSD)
+        private
+        pure
+        returns (uint256)
+    {
+        if (totalMATEMinted == 0) {
+            return type(uint256).max;
+        }
+        uint256 collateralAdjustedForThreshold = (collateralValueInUSD * LIQUIDATION_THRESHOLD) / LIQUIDATION_PRECISION;
+
+        // Examples:
+        // $100e18 ETH collateral and $75 MATE minted
+        // 100e18 * 50 / 100 = (50e18 * 1e18) / 75e18 = 6.67e17 < 1e18 - so it can be liquidated
+
+        // $100 ETH collateral and $50 MATE minted
+        // 100e18 * 50 / 100 = (50e18 * 1e18) / 50e18 = 1e18 < 1e18? - so it cannot be liquidated
+        return (collateralAdjustedForThreshold * PRECISION) / totalMATEMinted;
+    }
+
     // PUBLIC & EXTERNAL VIEW FUNCTIONS
 
     /**
-     * Returns the equivalent amount of token in Wei for a given USD amount in Wei
+     * Returns the equivalent amount of token for a given USD amount
      * Example: 1 ETH -> $2000 (calculated using PriceFed). We want to know How much ETH is $10 (e18)
      * ($10e18 * 1e18) / ($2000e8 * 1e10) = 0.005e18 = 5e15 => So $10 is 0.005 ETH
      * @param token The token address
@@ -307,7 +317,7 @@ contract MATEEngine is ReentrancyGuard {
         return (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
 
-    function getAccountCollateralValue(address user) public view returns (uint256 totalCollateralValue) {
+    function getAccountCollateralValueInUSD(address user) public view returns (uint256 totalCollateralValue) {
         for (uint256 i = 0; i < s_collateralTokens.length; i++) {
             address token = s_collateralTokens[i];
             uint256 amount = s_collateralDeposited[user][token];
@@ -325,5 +335,46 @@ contract MATEEngine is ReentrancyGuard {
         return ((uint256(price) * ADDITIONAL_FEED_PRECISION) * amount) / PRECISION;
     }
 
-    function getHealthFactor() external view {}
+    function getHealthFactor(address user) external view returns (uint256) {
+        return _healthFactor(user);
+    }
+
+    /**
+     *
+     * @param user Account owner
+     * @return totalMATEMinted Total amount of MATE the user
+     * @return collateralValueInUSD Total amount of collateral value in USD the user has
+     * @notice the amounts are in precision 1e18
+     */
+    function getAccountInformation(address user)
+        external
+        view
+        returns (uint256 totalMATEMinted, uint256 collateralValueInUSD)
+    {
+        (totalMATEMinted, collateralValueInUSD) = _getAccountInformation(user);
+    }
+
+    function getAdditionalFeedPrecision() public pure returns (uint256) {
+        return ADDITIONAL_FEED_PRECISION;
+    }
+
+    function getPrecision() public pure returns (uint256) {
+        return PRECISION;
+    }
+
+    function getLiquidationBonus() public pure returns (uint256) {
+        return LIQUIDATION_BONUS;
+    }
+
+    function getLiquidationPrecision() public pure returns (uint256) {
+        return LIQUIDATION_PRECISION;
+    }
+
+    function calculateHealthFactor(uint256 totalMATEMinted, uint256 collateralValueInUSD)
+        public
+        pure
+        returns (uint256)
+    {
+        return _calculateHealthFactor(totalMATEMinted, collateralValueInUSD);
+    }
 }
