@@ -2,8 +2,8 @@
 
 pragma solidity ^0.8.28;
 
-import {ERC20Burnable, ERC20} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import { ERC20Burnable, ERC20 } from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
+import { Ownable } from "@openzeppelin/contracts/access/Ownable.sol";
 
 /**
  * @title MATEStableCoin
@@ -20,7 +20,7 @@ contract MATEStableCoin is ERC20Burnable, Ownable {
     error MATEStableCoin__BurnAmountExceedsBalance();
     error MATEStableCoin__NotZeroAddress();
 
-    constructor() ERC20("MATEStableCoin", "MATE") Ownable(msg.sender) {}
+    constructor() ERC20("MATEStableCoin", "MATE") Ownable(msg.sender) { }
 
     function burn(uint256 _amount) public override onlyOwner {
         uint256 balance = balanceOf(msg.sender);

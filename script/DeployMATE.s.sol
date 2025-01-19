@@ -2,10 +2,10 @@
 
 pragma solidity ^0.8.28;
 
-import {Script, console2} from "forge-std/Script.sol";
-import {MATEStableCoin} from "src/MATEStableCoin.sol";
-import {MATEEngine} from "src/MATEEngine.sol";
-import {HelperConfig} from "script/HelperConfig.s.sol";
+import { Script, console2 } from "forge-std/Script.sol";
+import { MATEStableCoin } from "src/MATEStableCoin.sol";
+import { MATEEngine } from "src/MATEEngine.sol";
+import { HelperConfig } from "script/HelperConfig.s.sol";
 
 contract DeployMATE is Script {
     address[] public tokenAddresses;

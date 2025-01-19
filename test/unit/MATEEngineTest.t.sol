@@ -2,15 +2,15 @@
 
 pragma solidity ^0.8.28;
 
-import {Test, console2} from "forge-std/Test.sol";
-import {HelperConfig} from "script/HelperConfig.s.sol";
-import {DeployMATE} from "script/DeployMATE.s.sol";
-import {MATEStableCoin} from "src/MATEStableCoin.sol";
-import {MATEEngine} from "src/MATEEngine.sol";
-import {ERC20Mock} from
+import { Test, console2 } from "forge-std/Test.sol";
+import { HelperConfig } from "script/HelperConfig.s.sol";
+import { DeployMATE } from "script/DeployMATE.s.sol";
+import { MATEStableCoin } from "src/MATEStableCoin.sol";
+import { MATEEngine } from "src/MATEEngine.sol";
+import { ERC20Mock } from
     "@chainlink/contracts/src/v0.8/vendor/openzeppelin-solidity/v4.8.3/contracts/mocks/ERC20Mock.sol";
-import {MockV3Aggregator} from "@chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
-import {MockFailedMintMATE} from "test/mocks/MockFailedMintMATE.sol";
+import { MockV3Aggregator } from "@chainlink/contracts/src/v0.8/tests/MockV3Aggregator.sol";
+import { MockFailedMintMATE } from "test/mocks/MockFailedMintMATE.sol";
 
 contract MATEEngineTest is Test {
     DeployMATE deployer;
@@ -80,7 +80,7 @@ contract MATEEngineTest is Test {
     function testGetUSDValue() public view {
         uint256 ethAmount = 15 ether; // 15e18
         // 15e18 * $2000 (ETH_USD_PRICE mocked in HelperConfig) = 30000e18
-        uint256 expectedUSDValue = 30000e18;
+        uint256 expectedUSDValue = 30_000e18;
         uint256 actualUSDValue = mateEngine.getUSDValue(wETH, ethAmount);
         assertEq(actualUSDValue, expectedUSDValue);
     }

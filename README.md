@@ -10,7 +10,9 @@ Developed a smart contract to implement a stable coin with the following charact
 - Collateral: wETH and wBTC.
 - Users need to be 200% overcollateralized.
 - Liquidators get 10% bonus.
-- Known issue: If collateral/USD prices drops quickly, engine wouldn't be able to pay liquidators and system breaks.
+- Known issues: 
+   - If collateral/USD prices drops quickly, engine wouldn't be able to pay liquidators and system breaks.
+   - If Chainlink network is down, the system is unusable.
 
 ## Usage
 

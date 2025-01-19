@@ -7,6 +7,7 @@ import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.s
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
 import { console2 } from "forge-std/Script.sol";
+import { OracleLib } from "./libraries/OracleLib.sol";
 
 /**
  * @title MATEEngine
@@ -37,6 +38,9 @@ contract MATEEngine is ReentrancyGuard {
     error MATEEngine__MintFailed();
     error MATEEngine__HealthFactorOk();
     error MATEEngine__HealthFactorNotImproved();
+
+    /// TYPES ///
+    using OracleLib for AggregatorV3Interface;
 
     /// STATE VARIABLES ///
     uint256 private constant ADDITIONAL_FEED_PRECISION = 1e10;
@@ -336,7 +340,7 @@ contract MATEEngine is ReentrancyGuard {
      */
     function getTokenAmountFromUSD(address token, uint256 usdAmountInWei) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
 
         return (usdAmountInWei * PRECISION) / (uint256(price) * ADDITIONAL_FEED_PRECISION);
     }
@@ -352,7 +356,7 @@ contract MATEEngine is ReentrancyGuard {
 
     function getUSDValue(address token, uint256 amount) public view returns (uint256) {
         AggregatorV3Interface priceFeed = AggregatorV3Interface(s_priceFeeds[token]);
-        (, int256 price,,,) = priceFeed.latestRoundData();
+        (, int256 price,,,) = priceFeed.staleCheckLatestRoundData();
         // If 1 ETH = $1000 => CL will return 1000 * 1e8
         // Amount is in Wei (1e18), so we to multiple price (in 1e8) by 1e10 to match the precision (1e18)
         // Then we divide by 1e18 since they result would be 1e36 => 1e18
