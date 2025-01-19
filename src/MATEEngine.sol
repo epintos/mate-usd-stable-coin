@@ -2,10 +2,11 @@
 
 pragma solidity ^0.8.28;
 
-import {MATEStableCoin} from "./MATEStableCoin.sol";
-import {ReentrancyGuard} from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {AggregatorV3Interface} from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import { MATEStableCoin } from "./MATEStableCoin.sol";
+import { ReentrancyGuard } from "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
+import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { AggregatorV3Interface } from "@chainlink/contracts/src/v0.8/shared/interfaces/AggregatorV3Interface.sol";
+import { console2 } from "forge-std/Script.sol";
 
 /**
  * @title MATEEngine
@@ -108,7 +109,9 @@ contract MATEEngine is ReentrancyGuard {
         address tokenCollateralAddress,
         uint256 amountCollateral,
         uint256 amountMATEToMint
-    ) external {
+    )
+        external
+    {
         depositCollateral(tokenCollateralAddress, amountCollateral);
         mintMATE(amountMATEToMint);
     }
@@ -120,7 +123,11 @@ contract MATEEngine is ReentrancyGuard {
      * @param amountMATEToBurn The amount of MATE tokens to burn
      * @dev redeemCollateral already checks health factor
      */
-    function redeemCollateralForMATE(address tokenCollateralAddress, uint256 amountCollateral, uint256 amountMATEToBurn)
+    function redeemCollateralForMATE(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        uint256 amountMATEToBurn
+    )
         external
     {
         burnMATE(amountMATEToBurn);
@@ -136,12 +143,16 @@ contract MATEEngine is ReentrancyGuard {
      * @notice This function working assumes the protocol will be roughly 200% overcollateralized in order for
      * this to work.
      * @notice A known bug would be if the protocol were 100% or less collateralized, then we wouldn't
-     * be able to incentive the liquidators.For example, if the price of the collateral plummeted before
+     * be able to incentive the liquidators. For example, if the price of the collateral plummeted before
      * anyone could be liquidated.
      * @notice This function only reduces the user debt and keeps the MATE in the MATEStableCoin balance. The liquidator
      * MATE gets burned instead.
      */
-    function liquidate(address collateral, address user, uint256 mateDebtToCover)
+    function liquidate(
+        address collateral,
+        address user,
+        uint256 mateDebtToCover
+    )
         external
         moreThanZero(mateDebtToCover)
         nonReentrant
@@ -177,7 +188,10 @@ contract MATEEngine is ReentrancyGuard {
 
     // PUBLIC FUNCTIONS
 
-    function redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral)
+    function redeemCollateral(
+        address tokenCollateralAddress,
+        uint256 amountCollateral
+    )
         public
         moreThanZero(amountCollateral)
         nonReentrant
@@ -197,7 +211,10 @@ contract MATEEngine is ReentrancyGuard {
      * @param tokenCollateralAddress The address of the token to be deposited as collateral
      * @param amountCollateral The amount of the token to be deposited as collateral
      */
-    function depositCollateral(address tokenCollateralAddress, uint256 amountCollateral)
+    function depositCollateral(
+        address tokenCollateralAddress,
+        uint256 amountCollateral
+    )
         public
         moreThanZero(amountCollateral)
         isAllowedToken(tokenCollateralAddress)
@@ -242,12 +259,16 @@ contract MATEEngine is ReentrancyGuard {
         i_MATE.burn(amount);
     }
 
-    function _redeemCollateral(address tokenCollateralAddress, uint256 amountCollateral, address from, address to)
+    function _redeemCollateral(
+        address tokenCollateralAddress,
+        uint256 amountCollateral,
+        address from,
+        address to
+    )
         private
     {
         s_collateralDeposited[from][tokenCollateralAddress] -= amountCollateral;
         emit CollateralRedeemed(from, to, tokenCollateralAddress, amountCollateral);
-
         bool success = IERC20(tokenCollateralAddress).transfer(to, amountCollateral);
         if (!success) {
             revert MATEEngine__TranferFailed();
@@ -282,7 +303,10 @@ contract MATEEngine is ReentrancyGuard {
         }
     }
 
-    function _calculateHealthFactor(uint256 totalMATEMinted, uint256 collateralValueInUSD)
+    function _calculateHealthFactor(
+        uint256 totalMATEMinted,
+        uint256 collateralValueInUSD
+    )
         private
         pure
         returns (uint256)
@@ -370,11 +394,26 @@ contract MATEEngine is ReentrancyGuard {
         return LIQUIDATION_PRECISION;
     }
 
-    function calculateHealthFactor(uint256 totalMATEMinted, uint256 collateralValueInUSD)
+    function calculateHealthFactor(
+        uint256 totalMATEMinted,
+        uint256 collateralValueInUSD
+    )
         public
         pure
         returns (uint256)
     {
         return _calculateHealthFactor(totalMATEMinted, collateralValueInUSD);
+    }
+
+    function getCollateralTokens() public view returns (address[] memory) {
+        return s_collateralTokens;
+    }
+
+    function getCollateralBalanceOfUser(address user, address token) public view returns (uint256) {
+        return s_collateralDeposited[user][token];
+    }
+
+    function getCollateralTokenPriceFeed(address token) public view returns (address) {
+        return s_priceFeeds[token];
     }
 }

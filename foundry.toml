@@ -8,4 +8,19 @@ remappings = [
 ]
 fs_permissions = [{ access = "read", path = "./broadcast" }]
 
+[invariant]
+runs = 128
+depth = 127
+fail_on_revert = true
+
+[fmt]
+line_length = 120
+bracket_spacing = true
+int_types = "long"
+multiline_func_header = "all"
+number_underscore = "thousands"
+quote_style = "double"
+tab_width = 4
+wrap_comments = true
+
 # See more config options https://github.com/foundry-rs/foundry/blob/master/crates/config/README.md#all-options
